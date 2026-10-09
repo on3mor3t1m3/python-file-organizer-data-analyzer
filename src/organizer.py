@@ -86,7 +86,7 @@ def show_plan(plan, directory):
             destination_path = get_unique_path(destination_folder, filename)
             base_name, extension = os.path.splitext(filename)
             counter = 1
-            while destination_path.lower in planned_paths:
+            while destination_path.lower() in planned_paths:
                 unique_filename = f"{base_name} ({counter}){extension}"
                 destination_path = os.path.join(destination_folder, unique_filename)
                 counter += 1
@@ -141,17 +141,30 @@ def organize_files(directory, category=None, plan=None):
         return
     moved_files = 0
     failed_files = 0
+
     for category, filenames in selected_plan.items():
         category_folder = os.path.join(directory, category)
-        os.makedirs(category_folder, exist_ok=True)
+        try:
+            os.makedirs(category_folder, exist_ok=True)
+        except OSError as e:
+            print(f"Error creating folder '{category_folder}': {e}")
+            failed_files += len(filenames)
+            continue
+
         for filename in filenames:
             source_path = os.path.join(directory, filename)
-            destination_path = get_unique_path(category_folder, filename)
+            if not os.path.isfile(source_path):
+                print(f"Skipping '{source_path}': Not a file.")
+                failed_files += 1
+                continue
+
             try:
+                destination_path = get_unique_path(category_folder, filename)
                 os.rename(source_path, destination_path)
+                print(f"Moved '{source_path}' to '{destination_path}'")
                 moved_files += 1
-            except Exception as e:
-                print(f"Failed to move {source_path} to {destination_path}: {e}")
+            except OSError as e:
+                print(f"Error moving '{source_path}' to '{destination_path}': {e}")
                 failed_files += 1
 
     print("\nOrganization complete.")
@@ -170,4 +183,4 @@ def print_summary(directory, category):
 if __name__ == "__main__":
     directory = validate_directory()
     plan = build_plan(directory)
-    show_plan(plan, directory)
+    organize_files(directory, plan=plan)
