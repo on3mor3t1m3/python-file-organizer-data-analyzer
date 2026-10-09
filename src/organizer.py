@@ -9,37 +9,44 @@ def validate_directory():
     """
     while True:
         directory = input("Enter the directory path to organize: ").strip()
-        if not directory:
+        if directory == "":
             directory = os.path.join(os.path.expanduser("~"), "Downloads")
 
         if os.path.isdir(directory):
             return directory
-
-
-def get_category():
-    """
-    Prompts the user to select a category for organizing files.
-    Returns the selected category as a string.
-    """
-    categories = {
-        "1": "Images",
-        "2": "Documents",
-        "3": "Videos",
-        "4": "Music",
-        "5": "Archives",
-        "6": "Others"
-    }
-
-    print("Select a category to organize files:")
-    for key, value in categories.items():
-        print(f"{key}. {value}")
-
-    while True:
-        choice = input("Enter the number corresponding to your choice: ").strip()
-        if choice in categories:
-            return categories[choice]
         else:
-            print("Invalid choice. Please try again.")
+            print("Invalid directory. Please try again.")
+
+
+def get_category(filename, plan=None):
+    """
+    Returns the category for a filename based on its extension.
+    """
+    if plan is None:
+        plan = build_plan()
+
+    filename = filename.lower()
+    for category, extensions in plan.items():
+        if any(filename.endswith(extension.lower()) for extension in extensions):
+            return category
+
+    return "Others"
+
+
+def get_categories(directory, plan=None):
+    """
+    Groups files in a directory by their extension-based category.
+    """
+    if plan is None:
+        plan = build_plan()
+
+    categories = {}
+    for filename in os.listdir(directory):
+        if os.path.isfile(os.path.join(directory, filename)):
+            category = get_category(filename, plan)
+            categories.setdefault(category, []).append(filename)
+
+    return categories
 
 
 def build_plan():
@@ -49,12 +56,12 @@ def build_plan():
     """
     plan = {
         "Images": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"],
-        "Documents": [".pdf", ".docx", ".txt", ".xlsx", ".pptx"],
+        "Documents": [".pdf", ".doc", ".docx", ".txt", ".rtf", ".odt", ".xlsx", ".xls", ".csv", ".ppt", ".pptx"],
         "Videos": [".mp4", ".avi", ".mov", ".mkv"],
-        "Music": [".mp3", ".wav", ".aac"],
+        "Audio": [".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a", ".wma"],
         "Archives": [".zip", ".rar", ".tar.gz"],
         "Others": []
-            }
+    }
     return plan
 
 
@@ -81,22 +88,25 @@ def get_unique_path(directory, filename):
     return unique_path
 
 
-def organize_files(directory, category, plan):
+def organize_files(directory, category=None, plan=None):
     """
-    Organizes files in the specified directory based on the selected category and plan.
-    Moves files to their respective category folders.
+    Organizes files into category folders based on their extensions.
+    If a category is provided, only files in that category are moved.
     """
-    category_folder = os.path.join(directory, category)
-    os.makedirs(category_folder, exist_ok=True)
+    if plan is None:
+        plan = build_plan()
 
-    for filename in os.listdir(directory):
-        file_path = os.path.join(directory, filename)
-        if os.path.isfile(file_path):
-            file_extension = os.path.splitext(filename)[1].lower()
-            if file_extension in plan[category]:
-                new_path = os.path.join(category_folder, filename)
-                os.rename(file_path, new_path)
-                print(f"Moved: {filename} -> {category_folder}")
+    categories = get_categories(directory, plan)
+    selected_categories = [category] if category is not None else categories
+    for selected_category in selected_categories:
+        category_folder = os.path.join(directory, selected_category)
+        os.makedirs(category_folder, exist_ok=True)
+
+        for filename in categories.get(selected_category, []):
+            file_path = os.path.join(directory, filename)
+            new_path = get_unique_path(category_folder, filename)
+            os.rename(file_path, new_path)
+            print(f"Moved: {filename} -> {category_folder}")
 
 
 def print_summary(directory, category):
