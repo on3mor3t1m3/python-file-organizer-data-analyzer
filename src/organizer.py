@@ -30,14 +30,7 @@ def get_category(filename, plan=None):
         if any(filename.endswith(extension.lower()) for extension in extensions):
             return category
 
-    return "Others"
-
-
-def get_categories(directory, plan=None):
-    """
-    Groups files in a directory by their extension-based category.
-    """
-    return build_plan(directory, plan)
+    return "Other"
 
 
 def get_extension_plan():
@@ -46,11 +39,13 @@ def get_extension_plan():
     """
     return {
         "Images": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"],
-        "Documents": [".pdf", ".doc", ".docx", ".txt", ".rtf", ".odt", ".xlsx", ".xls", ".csv", ".ppt", ".pptx"],
+        "Documents": [".pdf", ".doc", ".docx", ".txt", ".rtf", ".odt", ".ppt", ".pptx"],
+        "Spreadsheets": [".xls", ".xlsx", ".csv"],
         "Videos": [".mp4", ".avi", ".mov", ".mkv"],
         "Audio": [".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a", ".wma"],
         "Archives": [".zip", ".rar", ".tar.gz"],
-        "Others": []
+        "Programs": [".exe", ".msi", ".bat", ".sh", ".py", ".java", ".c", ".cpp"],
+        "Other": []
     }
 
 
@@ -78,8 +73,10 @@ def show_plan(plan, directory):
     total_files = 0
     for category, filenames in plan.items():
         for filename in filenames:
-            destination = os.path.join(directory, category)
-            print(f"{filename} -> {destination}")
+            source_path = os.path.join(directory, filename)
+            destination_folder = os.path.join(directory, category)
+            destination_path = get_unique_path(destination_folder, filename)
+            print(f"{source_path} -> {destination_path}")
             total_files += 1
 
     print(f"Total files to move: {total_files}")
@@ -106,8 +103,14 @@ def get_unique_path(directory, filename):
 def organize_files(directory, category=None, plan=None):
     """
     Organizes files into category folders based on their extensions.
+    Firstly asks user for confirmation before moving files. If the user confirms, it moves the files to their respective category folders.
     If a category is provided, only files in that category are moved.
     """
+    confirmation = input("Are you sure you want to organize these files? (yes/no): ")
+    if confirmation.lower() != "yes":
+        print("Organization cancelled.")
+        return
+
     if plan is None:
         plan = build_plan(directory)
 
