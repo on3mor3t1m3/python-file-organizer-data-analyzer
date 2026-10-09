@@ -23,7 +23,7 @@ def get_category(filename, plan=None):
     Returns the category for a filename based on its extension.
     """
     if plan is None:
-        plan = build_plan()
+        plan = get_extension_plan()
 
     filename = filename.lower()
     for category, extensions in plan.items():
@@ -37,24 +37,14 @@ def get_categories(directory, plan=None):
     """
     Groups files in a directory by their extension-based category.
     """
-    if plan is None:
-        plan = build_plan()
-
-    categories = {}
-    for filename in os.listdir(directory):
-        if os.path.isfile(os.path.join(directory, filename)):
-            category = get_category(filename, plan)
-            categories.setdefault(category, []).append(filename)
-
-    return categories
+    return build_plan(directory, plan)
 
 
-def build_plan():
+def get_extension_plan():
     """
-    Builds a plan for organizing files based on user input.
-    Returns a dictionary mapping categories to their respective file extensions.
+    Returns the supported file extensions for each category.
     """
-    plan = {
+    return {
         "Images": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"],
         "Documents": [".pdf", ".doc", ".docx", ".txt", ".rtf", ".odt", ".xlsx", ".xls", ".csv", ".ppt", ".pptx"],
         "Videos": [".mp4", ".avi", ".mov", ".mkv"],
@@ -62,13 +52,38 @@ def build_plan():
         "Archives": [".zip", ".rar", ".tar.gz"],
         "Others": []
     }
-    return plan
 
 
-def show_plan(plan):
-    print ("\nOrganizing Plan:")
-    for category, extensions in plan.items():
-        print (f"{category}: {', '.join(extensions) if extensions else 'no specific extensions'}")
+def build_plan(directory, extension_plan=None):
+    """
+    Builds a category-to-filenames plan from the files in a directory.
+    """
+    if extension_plan is None:
+        extension_plan = get_extension_plan()
+
+    categories = {}
+    for filename in os.listdir(directory):
+        if os.path.isfile(os.path.join(directory, filename)):
+            category = get_category(filename, extension_plan)
+            categories.setdefault(category, []).append(filename)
+
+    return categories
+
+
+def show_plan(plan, directory):
+    """
+    Prints each file's destination and the total number of files to move.
+    """
+    print("\nOrganizing Plan:")
+    total_files = 0
+    for category, filenames in plan.items():
+        for filename in filenames:
+            destination = os.path.join(directory, category)
+            print(f"{filename} -> {destination}")
+            total_files += 1
+
+    print(f"Total files to move: {total_files}")
+    return total_files
 
 
 def get_unique_path(directory, filename):
@@ -94,15 +109,14 @@ def organize_files(directory, category=None, plan=None):
     If a category is provided, only files in that category are moved.
     """
     if plan is None:
-        plan = build_plan()
+        plan = build_plan(directory)
 
-    categories = get_categories(directory, plan)
-    selected_categories = [category] if category is not None else categories
+    selected_categories = [category] if category is not None else plan
     for selected_category in selected_categories:
         category_folder = os.path.join(directory, selected_category)
         os.makedirs(category_folder, exist_ok=True)
 
-        for filename in categories.get(selected_category, []):
+        for filename in plan.get(selected_category, []):
             file_path = os.path.join(directory, filename)
             new_path = get_unique_path(category_folder, filename)
             os.rename(file_path, new_path)
