@@ -1,0 +1,16 @@
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# Generated reports
+reports/*
+!reports/.gitkeep
+
+# IDE settings
+.vscode/
+.idea/
